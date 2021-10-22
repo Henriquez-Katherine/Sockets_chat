@@ -12,24 +12,46 @@ server.bind(
 
 server.listen(5) #listen users
 print ("[WARN] Server start listening!!!")
-
-users = []
+password = "1234"
+users = [] # list with users
 
 def listen(user):
+    global password
+    while True: # Wait for right password
+        data = user.recv(2048)
+        if data.decode("utf-8") == password:
+            print ("Right password!")
+            user.send("1".encode("utf-8"))
+            break
+        else:
+            user.send("0".encode("utf-8"))
     while True:
         data = user.recv(2048)
-        print (data)
+        print (data) # Get data from user
+        
+def cmd_cont(): # server control
+    while True:
+        cmd = str(input(":::"))
+        if cmd == "help":
+            print ("* Control console ** help \n List with commands: \n help \n stop \n users \n password_change \n Write one command without any /! \n []")
+        elif cmd == "stop":
+            print ("[ERROR] ERROR_001")
+        elif cmd == "users":
+            print ("Users list:")
+            print (users)
+        elif cmd == "password_change":
+            print ("[ERROR] WIP")
+        else:
+            print ("* Uncorrect command! Use help to get command list ///")
 def start():
     Run = True
+    cmds  = threading.Thread(target=cmd_cont)
+    cmds.start()
     while Run:
         user_socket, address = server.accept()
         user_socket.send(f"Connected! <{address[0]}!>".encode("utf-8")) # Send user data
         users.append(user_socket)
-        listen_accept = threading.Thread(
-                target=listen,
-                args=(user_socket,)
-        )
-        listen_accept.start()
-        print ("Succefuly!")
+        listen_accept = threading.Thread( target=listen,  args=(user_socket,) )
+        listen_accept.start() # User connected and now listening
 if __name__ == "__main__":    
     start()
