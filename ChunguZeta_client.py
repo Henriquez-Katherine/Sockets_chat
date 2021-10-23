@@ -2,16 +2,23 @@ import socket
 from tkinter import *
 from threading import Thread
 from tkinter import messagebox
+import time
 
 root  = Tk()
 client = socket.socket(
     socket.AF_INET,
     socket.SOCK_STREAM,
 )
-id = "127.0.0.1"
-client.connect(
-    (id, 8001) # connect to port and adress
-)
+while True:
+    try:
+        id = "127.0.0.1"
+        client.connect(
+            (id, 8001) # connect to port and adress
+        )
+        break
+    except ConnectionRefusedError:
+        print ("IP not finded.. Please wait")
+        time.sleep(5)
 data = ""
 root['bg'] = '#fafafa'
 root.title("ChunguZeta_client")
@@ -24,6 +31,20 @@ frame.place(relwidth=1, relheight=1)
 
 
 
+
+def profiles(title2, title3, btn2, btn3, btn4, btn5):
+    title2.destroy()
+    title3.destroy()
+    btn2.destroy()
+    btn3.destroy()
+    btn4.destroy()
+    btn5.destroy()
+    title4 = Label(frame, text='ChunguZeta v0.0.1', bg='white', font=100)
+    title4.pack()
+    title5 = Label(frame, text='Profiles', bg='white', font=40)
+    title5.pack()
+    
+    
 def listen_server():
     global data
     while True:
@@ -43,7 +64,7 @@ def entered():
     title2.pack()
     title3 = Label(frame, text='Welcome!', bg='white', font=40)
     title3.pack()
-    btn2 = Button(frame, text='Profile', bg='yellow', font=40)
+    btn2 = Button(frame, text='Profile', bg='yellow', font=40, command= lambda : profiles(title2, title3, btn2, btn3, btn4, btn5))
     btn2.place(relx=0, y = 60)
     btn3 = Button(frame, text='Chats', bg='yellow', font=40)
     btn3.place(relx=0, y = 100)
@@ -61,6 +82,8 @@ def enter_in_system(user_login, user_password, title1, btn): # Send password and
     global data
     login = user_login.get()
     password = user_password.get()
+    if password  == "":
+        password = "0"
     info = f"Data: {str(login)}, {str(password)}"
     messagebox.showinfo(title="INFO", message=info)
     client.send(password.encode("utf-8"))
@@ -76,13 +99,13 @@ def enter_in_system(user_login, user_password, title1, btn): # Send password and
             break        
 def draw():
 
-    title1 = Label(frame, text='ChunguZeta v0.0.1', bg='white', font=40)
+    title1 = Label(frame, text='ChunguZeta v0.0.1', bg='white', font=100)
     title1.pack()
     user_login = Entry(frame, bg='white')
     user_password = Entry(frame, bg='white', show='*')
     user_login.pack()
     user_password.pack()
-    btn = Button(frame, text='Send', bg='yellow', command=lambda : enter_in_system(user_login, user_password, title1, btn))
+    btn = Button(frame, text='Send', bg='yellow', font=100, command=lambda : enter_in_system(user_login, user_password, title1, btn))
     btn.pack()
     root.resizable(width=False, height=False)
     root.mainloop()
