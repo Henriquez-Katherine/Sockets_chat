@@ -1,2 +1,2 @@
-# ChanguZeta
-Client-user program.
+# Client_server
+Client-server program with sockets.
