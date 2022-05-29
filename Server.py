@@ -226,12 +226,8 @@ class Servers():
                                     if ent[0] == "!help" and self.chats[chat][4] == user:
                                         user.send("* Chat commands ** help \n List with commands: \n !help \n !kick \n !members \n !name \n !close \n []".encode("utf-8"))
                                     if ent[0] == "!kick" and self.chats[chat][4] == user:
-                                        print (ent[1])
                                         for u in self.chats[chat][1]:
-                                            print (u[0])
                                             if ent[1] == u[0]:
-                                                print ("BAN")
-                                                print (u[0])
                                                 u[1].send("||||||||||||||||||||||||||||".encode("utf-8"))
                                                 u[1].send("| You was kicked from lobby|".encode("utf-8"))
                                                 self.chats[chat][1].remove(u)
