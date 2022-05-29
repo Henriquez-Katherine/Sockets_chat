@@ -86,6 +86,9 @@ class Servers():
         def cmd(self):
             print ("|| SERVER 0.1        CONTROL CMD||")
             while True:
+                for i in self.chats:
+                    if len(i[1]) <= 0:
+                        self.chats.remove(i)
                 a = str(input()).split()
                 if a[0] == "!help":
                     print ("* Control console ** help \n List with commands: \n !help \n !stop \n !users \n !stats \n !close \n []")
@@ -188,7 +191,7 @@ class Servers():
                         if i[0] == entry[0]:
                                 user.send("* Joining to the chats...".encode("utf-8"))
                                 token = i[0]
-                                i[1].append([token, user])
+                                i[1].append([login, user])
                                 user.send(f"| You connected to {i[2]} lobby! |".encode("utf-8"))
                                 Run1 = True
                                 cursor.execute("""
@@ -203,7 +206,8 @@ class Servers():
                                 chat = n # chat Id
                                 break
                             n += 1
-                        while Run1:
+                        while Run1:  
+                                # This is chat
                                 n =  0
                                 for i in self.chats:
                                     if i == self.chats[chat]:
@@ -226,6 +230,8 @@ class Servers():
                                         for u in self.chats[chat][1]:
                                             print (u[0])
                                             if ent[1] == u[0]:
+                                                print ("BAN")
+                                                print (u[0])
                                                 u[1].send("||||||||||||||||||||||||||||".encode("utf-8"))
                                                 u[1].send("| You was kicked from lobby|".encode("utf-8"))
                                                 self.chats[chat][1].remove(u)
@@ -264,6 +270,9 @@ class Servers():
                                         Run1 = False
                                         print (self.chats)
                                     data = login + " : " + f"{data}"
+                                    cursor.execute(f"SELECT * FROM users WHERE name = '{login}' and token != '0'")
+                                    if len(cursor.fetchall()) < 1:
+                                        Run1 = False
                                     for i in self.chats:
                                         if i[0] == token:
                                             for i1 in i[1]:
