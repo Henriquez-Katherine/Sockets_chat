@@ -17,9 +17,9 @@ from sqlite3 import Error
 # operator = 4
 
 # Status
-# NORM - normal
-# BAN - banned
-# FREZ - freezed
+# ACTIVE - normal
+# BANNED - banned
+# FROZEN - freezed
 
 class Servers():
 
@@ -34,7 +34,7 @@ class Servers():
                 self.token_len = 8
                 # token len for chats
                 self.users = []
-                self.users_data = ["bob 1234"] # User: login password rang(User, manager, admin)
+                self.users_data = [] # User: login rang(User, manager, admin), socket, address
                 self.server = socket.socket(
                     socket.AF_INET,
                     socket.SOCK_STREAM,
@@ -52,13 +52,17 @@ class Servers():
                 password TEXT,
                 rank INTEGER,
                 bal INTEGER,
-                status TEXT
+                status TEXT,
+                token TEXT
                 );
                 """)
             conn.commit()
             cursor.execute("""
                 UPDATE users SET rank = 0
                 WHERE rank = 1
+                """)
+            cursor.execute("""
+                UPDATE users SET token = '0'
                 """)
             conn.commit()
 
@@ -93,7 +97,7 @@ class Servers():
                     return
                 if a[0] == "!users":
                     print ("[INFO] OUTPUT USERS: ")
-                    for i in self.users:
+                    for i in self.users_data:
                         print (f"USER: {i}")
                 if a[0] == "!stats":
                     print ("SERVER v0.1: ")
@@ -115,18 +119,12 @@ class Servers():
                     entry = data.split()
                     if self.stopping == True:
                         return
-                    if entry[0] == "!exit":
-                        user.send("* You leave the server.".encode("utf-8"))
-                        for i in self.users:
-                            if i == user:
-                                self.users.remove(i)
-                        return
                     if entry[0] == "!create":
                         cursor.execute(f"SELECT * FROM users WHERE name = '{entry[1]}'")
                         buf = cursor.fetchall()
                         if len(buf) == 0:
-                            cursor.execute("""INSERT INTO users(name, password, rank, bal)
-                                VALUES('"""+ entry[1] + """', '"""+ entry[2] + """', 0, 0)
+                            cursor.execute("""INSERT INTO users(name, password, rank, bal, status, token)
+                                VALUES('"""+ entry[1] + """', '"""+ entry[2] + """', 0, 0, 'ACTIVE', '0')
                                 """)
                             conn.commit()
                         else:
@@ -140,10 +138,12 @@ class Servers():
                             login = buf[0][0]
                             Run = False
                             print (buf)
+                            self.users_data.append((login, buf[0][2], user, adr))
                         else:
                             user.send("Uncorrect data! User or password uncorrect.".encode("utf-8"))
                 except ConnectionResetError:
                         print ("[ERROR] USER disconnected Error!")
+                        self.users.remove(user)
                         return
             Run = True
             Run1 = False
@@ -166,21 +166,19 @@ class Servers():
                     entry = data.split()
                     if self.stopping == True:
                         return
-                    if entry[0] == "!exit":
-                        user.send("* You leave the server.".encode("utf-8"))
-                        for i in self.users:
-                            if i == user:
-                                self.users.remove(i)
-                        return
                     if entry[0] == "!create" and entry[1] == "lobby":
                         token = ""
                         for i in range(self.token_len):
                             token = token + random.choice(self.letters)
-                        self.chats.append([token, [user], "NO_NAME", 5, user])
+                        self.chats.append([token, [[login, user]], "NO_NAME", 5, user])
                         user.send(f"Lobby created. token: {token}".encode("utf-8"))
                         user.send("| !help to get commands".encode("utf-8"))
                         cursor.execute("""
                             UPDATE users SET rank = 1
+                            WHERE name = '""" + login + """'
+                            """)
+                        cursor.execute("""
+                            UPDATE users SET token = '""" + token + """'
                             WHERE name = '""" + login + """'
                             """)
                         conn.commit()
@@ -190,14 +188,19 @@ class Servers():
                         if i[0] == entry[0]:
                                 user.send("* Joining to the chats...".encode("utf-8"))
                                 token = i[0]
-                                i[1].append(user)
+                                i[1].append([token, user])
                                 user.send(f"| You connected to {i[2]} lobby! |".encode("utf-8"))
                                 Run1 = True
+                                cursor.execute("""
+                                    UPDATE users SET token = '""" + token + """'
+                                    WHERE name = '""" + login + """'
+                                    """)
+                                conn.commit()
                                 break
                     if Run1 == True:
                         for i in self.chats:
                             if i[0] == token:
-                                chat = n
+                                chat = n # chat Id
                                 break
                             n += 1
                         while Run1:
@@ -216,34 +219,46 @@ class Servers():
                                     ent = data.split()
                                     if self.stopping == True:
                                         return
-                                    if ent[0] == "!exit":
-                                        user.send("* You leave the server.".encode("utf-8"))
-                                        for i in self.users:
-                                            if i == user:
-                                                self.users.remove(i)
-                                                return
                                     if ent[0] == "!help" and self.chats[chat][4] == user:
                                         user.send("* Chat commands ** help \n List with commands: \n !help \n !kick \n !members \n !name \n !close \n []".encode("utf-8"))
                                     if ent[0] == "!kick" and self.chats[chat][4] == user:
-                                        for u in self.users:
-                                            if ent[1] == u:
-                                                u.send("||||||||||||||||||||||||||||".encode("utf-8"))
-                                                u.send("| You was kicked from lobby|".encode("utf-8"))
-                                                for i in self.chats[chat][1]:
-                                                    if i == u:
-                                                        self.chats[chat][1].remove(i)
+                                        print (ent[1])
+                                        for u in self.chats[chat][1]:
+                                            print (u[0])
+                                            if ent[1] == u[0]:
+                                                u[1].send("||||||||||||||||||||||||||||".encode("utf-8"))
+                                                u[1].send("| You was kicked from lobby|".encode("utf-8"))
+                                                self.chats[chat][1].remove(u)
+                                                cursor.execute("""
+                                                    UPDATE users SET token = '0'
+                                                    WHERE name = '""" + u[0] + """'
+                                                    """)
+                                                conn.commit()
                                     if ent[0] == "!members" and self.chats[chat][4] == user:
-                                        user.send(f"* Members: {self.chats[chat][1]}".encode("utf-8"))
-                                    if ent[0] == "!name":
+                                        cursor.execute(f"SELECT * FROM users WHERE token = '{token}'")
+                                        buf = cursor.fetchall()
+                                        buf2 = []
+                                        for i in buf:
+                                            buf2.append(i[0])
+                                        user.send(f"* Members: {buf2}".encode("utf-8"))
+                                    if ent[0] == "!name" and self.chats[chat][4] == user:
                                         self.chats[chat][2] = ent[1]
                                         user.send("* Name changed!".encode("utf-8"))
-                                    if ent[0] == "!close":
+                                    if ent[0] == "!close" and self.chats[chat][4] == user:
                                         data = "### CHAT WAS CLOSED!"
                                         for i in self.chats:
                                             if i[0] == token:
-                                                for u in self.users:
-                                                    if u in i[1]:
-                                                        u.send(data.encode("utf-8"))
+                                                for i1 in i[1]:
+                                                    i1[1].send(data.encode("utf-8"))
+                                                    cursor.execute("""
+                                                        UPDATE users SET token = '0'
+                                                        WHERE name = '""" + i1[0] + """'
+                                                        """)
+                                                    cursor.execute("""
+                                                        UPDATE users SET rank = 0
+                                                        WHERE name = '""" + i1[0] + """'
+                                                        """)
+                                                    conn.commit()
                                                 break
                                         self.chats.remove(self.chats[chat])
                                         Run1 = False
@@ -251,13 +266,23 @@ class Servers():
                                     data = login + " : " + f"{data}"
                                     for i in self.chats:
                                         if i[0] == token:
-                                            for u in self.users:
-                                                if u in i[1]:
-                                                    u.send(data.encode("utf-8"))
+                                            for i1 in i[1]:
+                                                if i1[1] != user:
+                                                    i1[1].send(data.encode("utf-8"))
                                             break
 
                 except ConnectionResetError:
                     print ("[ERROR] USER disconnected Error!")
+                    self.users.remove(user)
+                    cursor.execute("""
+                        UPDATE users SET rank = 0
+                        WHERE name = '""" + login + """'
+                        """)
+                    cursor.execute("""
+                        UPDATE users SET token = '0'
+                        WHERE name = '""" + login + """'
+                        """)
+                    conn.commit()
                     return
             
             
@@ -287,3 +312,4 @@ class Servers():
                         print ("[ERROR] SET UP ERROR. Invalid ip or port or other error.")
                 self.server.listen(self.max) #listen users  max
                 print ("[INFO] SERVER set up.")
+
