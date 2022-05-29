@@ -1,13 +1,30 @@
+
 import socket
 import threading
 import hashlib
 import time
 import random
 
+import sqlite3
+from sqlite3 import Error
+
+
+# Ranks
+# user = 0
+# room_owner = 1
+# manager = 2
+# admin = 3
+# operator = 4
+
+# Status
+# NORM - normal
+# BAN - banned
+# FREZ - freezed
+
 class Servers():
 
         def __init__(self):
-
+                
                 self.ip = 0
                 self.port = 8000
                 self.max = 99
@@ -18,8 +35,6 @@ class Servers():
                 # token len for chats
                 self.users = []
                 self.users_data = ["bob 1234"] # User: login password rang(User, manager, admin)
-
-
                 self.server = socket.socket(
                     socket.AF_INET,
                     socket.SOCK_STREAM,
@@ -28,10 +43,29 @@ class Servers():
 
                 self.letters = ["a", "b", "c", "d", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]
                 # For token generation
-
+        def based(self):
+            conn = sqlite3.connect('basa.bd')
+            cursor = conn.cursor()
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS users(
+                name TEXT,
+                password TEXT,
+                rank INTEGER,
+                bal INTEGER,
+                status TEXT
+                );
+                """)
+            conn.commit()
+            cursor.execute("""
+                UPDATE users SET rank = 0
+                WHERE rank = 1
+                """)
+            conn.commit()
 
         def main(self):
                 print ("[INFO] SERVER start listening.")
+                self.based()
+                print ("[INFO] DATA BASE connected.")
                 Run = True
                 cmds = threading.Thread(target=self.cmd) # Create thread for console commands
                 cmds.start()
@@ -41,7 +75,7 @@ class Servers():
                         user_socket, address = self.server.accept() # Unknow user try to connect
                         user_socket.send(f"********************* \n".encode("utf-8")) # Send user data(check)
                         self.users.append(user_socket)
-                        listen_accept = threading.Thread( target=self.listen,  args=(user_socket,) )
+                        listen_accept = threading.Thread( target=self.listen,  args=(user_socket, address,) )
                         listen_accept.start() # User connected and now listening
 
 
@@ -66,14 +100,16 @@ class Servers():
                     print (f"ADDRESS: {self.ip}, PORT: {self.port}")
 
 
-        def listen(self, user):
+        def listen(self, user, adr):
             # Start work with user
+            conn = sqlite3.connect('basa.bd')
+            cursor = conn.cursor()
             Run = True
             token = "NULL"
             login = "NULL"
             while Run: # Wait for right password
                 try:
-                    user.send("* Write your login, then your password: (if haven't record print !create)".encode("utf-8"))
+                    user.send("* Write your login, then your password: (if haven't record print !create name password )".encode("utf-8"))
                     data = user.recv(2048)
                     data = data.decode("utf-8") 
                     entry = data.split()
@@ -85,19 +121,30 @@ class Servers():
                             if i == user:
                                 self.users.remove(i)
                         return
-                    for i in self.users_data:
-                        if i.split()[0] == entry[0]:
-                                if i.split()[1] == entry[1]:
-                                        login = entry[0]
-                                        print (login)
-                                        user.send("* Right answer! Acces greated!".encode("utf-8"))
-                                        Run = False
-                                        break
+                    if entry[0] == "!create":
+                        cursor.execute(f"SELECT * FROM users WHERE name = '{entry[1]}'")
+                        buf = cursor.fetchall()
+                        if len(buf) == 0:
+                            cursor.execute("""INSERT INTO users(name, password, rank, bal)
+                                VALUES('"""+ entry[1] + """', '"""+ entry[2] + """', 0, 0)
+                                """)
+                            conn.commit()
+                        else:
+                            user.send("* Error! The user already exists!".encode("utf-8"))
+                    else:
+                        cursor.execute(f"SELECT * FROM users WHERE name = '{entry[0]}' and password = '{entry[1]}'")
+                        buf = cursor.fetchall()
+                        if len(buf) > 0:
+                            user.send("* Right answer! Acces greated!".encode("utf-8"))
+                            print (f"[INFO] User connected as: {buf[0][0]}")
+                            login = buf[0][0]
+                            Run = False
+                            print (buf)
                         else:
                             user.send("Uncorrect data! User or password uncorrect.".encode("utf-8"))
                 except ConnectionResetError:
                         print ("[ERROR] USER disconnected Error!")
-                        break
+                        return
             Run = True
             Run1 = False
             n = 0
@@ -132,6 +179,11 @@ class Servers():
                         self.chats.append([token, [user], "NO_NAME", 5, user])
                         user.send(f"Lobby created. token: {token}".encode("utf-8"))
                         user.send("| !help to get commands".encode("utf-8"))
+                        cursor.execute("""
+                            UPDATE users SET rank = 1
+                            WHERE name = '""" + login + """'
+                            """)
+                        conn.commit()
 
                         Run1 = True    
                     for i in self.chats:
@@ -206,7 +258,7 @@ class Servers():
 
                 except ConnectionResetError:
                     print ("[ERROR] USER disconnected Error!")
-                    break
+                    return
             
             
         def set_up(self):
