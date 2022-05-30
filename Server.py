@@ -122,7 +122,7 @@ class Servers():
                     entry = data.split()
                     if self.stopping == True:
                         return
-                    if entry[0] == "!create":
+                    if entry[0] == "!create" and len(entry) >= 3:
                         cursor.execute(f"SELECT * FROM users WHERE name = '{entry[1]}'")
                         buf = cursor.fetchall()
                         if len(buf) == 0:
@@ -133,17 +133,18 @@ class Servers():
                         else:
                             user.send("* Error! The user already exists!".encode("utf-8"))
                     else:
-                        cursor.execute(f"SELECT * FROM users WHERE name = '{entry[0]}' and password = '{entry[1]}'")
-                        buf = cursor.fetchall()
-                        if len(buf) > 0:
-                            user.send("* Right answer! Acces greated!".encode("utf-8"))
-                            print (f"[INFO] User connected as: {buf[0][0]}")
-                            login = buf[0][0]
-                            Run = False
-                            print (buf)
-                            self.users_data.append((login, buf[0][2], user, adr))
-                        else:
-                            user.send("Uncorrect data! User or password uncorrect.".encode("utf-8"))
+                        if len(entry) >= 2:
+                            cursor.execute(f"SELECT * FROM users WHERE name = '{entry[0]}' and password = '{entry[1]}'")
+                            buf = cursor.fetchall()
+                            if len(buf) > 0:
+                                user.send("* Right answer! Acces greated!".encode("utf-8"))
+                                print (f"[INFO] User connected as: {buf[0][0]}")
+                                login = buf[0][0]
+                                Run = False
+                                print (buf)
+                                self.users_data.append((login, buf[0][2], user, adr))
+                            else:
+                                user.send("Uncorrect data! User or password uncorrect.".encode("utf-8"))
                 except ConnectionResetError:
                         print ("[ERROR] USER disconnected Error!")
                         self.users.remove(user)
@@ -169,24 +170,24 @@ class Servers():
                     entry = data.split()
                     if self.stopping == True:
                         return
-                    if entry[0] == "!create" and entry[1] == "lobby":
-                        token = ""
-                        for i in range(self.token_len):
-                            token = token + random.choice(self.letters)
-                        self.chats.append([token, [[login, user]], "NO_NAME", 5, user])
-                        user.send(f"Lobby created. token: {token}".encode("utf-8"))
-                        user.send("| !help to get commands".encode("utf-8"))
-                        cursor.execute("""
-                            UPDATE users SET rank = 1
-                            WHERE name = '""" + login + """'
-                            """)
-                        cursor.execute("""
-                            UPDATE users SET token = '""" + token + """'
-                            WHERE name = '""" + login + """'
-                            """)
-                        conn.commit()
-
-                        Run1 = True    
+                    if len(entry) >= 2:
+                        if entry[0] == "!create" and entry[1] == "lobby":
+                            token = ""
+                            for i in range(self.token_len):
+                                token = token + random.choice(self.letters)
+                            self.chats.append([token, [[login, user]], "NO_NAME", 5, user])
+                            user.send(f"Lobby created. token: {token}".encode("utf-8"))
+                            user.send("| !help to get commands".encode("utf-8"))
+                            cursor.execute("""
+                                UPDATE users SET rank = 1
+                                WHERE name = '""" + login + """'
+                                """)
+                            cursor.execute("""
+                                UPDATE users SET token = '""" + token + """'
+                                WHERE name = '""" + login + """'
+                                """)
+                            conn.commit()
+                            Run1 = True    
                     for i in self.chats:
                         if i[0] == entry[0]:
                                 user.send("* Joining to the chats...".encode("utf-8"))
@@ -225,7 +226,7 @@ class Servers():
                                         return
                                     if ent[0] == "!help" and self.chats[chat][4] == user:
                                         user.send("* Chat commands ** help \n List with commands: \n !help \n !kick \n !members \n !name \n !close \n []".encode("utf-8"))
-                                    if ent[0] == "!kick" and self.chats[chat][4] == user:
+                                    if ent[0] == "!kick" and self.chats[chat][4] == user and len(ent) >= 2:
                                         for u in self.chats[chat][1]:
                                             if ent[1] == u[0]:
                                                 u[1].send("||||||||||||||||||||||||||||".encode("utf-8"))
@@ -243,7 +244,7 @@ class Servers():
                                         for i in buf:
                                             buf2.append(i[0])
                                         user.send(f"* Members: {buf2}".encode("utf-8"))
-                                    if ent[0] == "!name" and self.chats[chat][4] == user:
+                                    if ent[0] == "!name" and self.chats[chat][4] == user and len(ent) >= 2:
                                         self.chats[chat][2] = ent[1]
                                         user.send("* Name changed!".encode("utf-8"))
                                     if ent[0] == "!close" and self.chats[chat][4] == user:
@@ -317,4 +318,5 @@ class Servers():
                         print ("[ERROR] SET UP ERROR. Invalid ip or port or other error.")
                 self.server.listen(self.max) #listen users  max
                 print ("[INFO] SERVER set up.")
+
 
