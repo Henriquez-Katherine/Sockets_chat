@@ -19,11 +19,11 @@ while True:
             else:
                 id = "127.0.0.1"
                 port = 8001
-                self.client.connect(
+                client.connect(
                         (id, port) # bind hosting port and adress
                         )
-                        break
-            except:
+                break
+        except:
                 print ("[ERROR] SET UP ERROR. Invalid ip or port or other error.")
 
 def listen():
