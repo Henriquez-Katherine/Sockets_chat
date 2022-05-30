@@ -7,9 +7,25 @@ client = socket.socket(
 )
 
 
-client.connect(
-    ("127.0.0.1", 8001)
-)
+while True:
+        try:
+            print ("* Set ip and port. (Or write null: 127.0.0.1:8001)")
+            dat = str(input()).split()
+            if dat[0] != "null": # Skip
+                print ("* Write address: ")
+                id = str(input())
+                print ("* Write port: ")
+                port = str(input())
+            else:
+                id = "127.0.0.1"
+                port = 8001
+                self.client.connect(
+                        (id, port) # bind hosting port and adress
+                        )
+                        break
+            except:
+                print ("[ERROR] SET UP ERROR. Invalid ip or port or other error.")
+
 def listen():
     while True:
         data = client.recv(2048)
@@ -21,6 +37,5 @@ def send_client():
     listen_thr.start()
     while True:
         client.send(input("").encode("utf-8"))
-
 
 send_client()

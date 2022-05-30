@@ -10,18 +10,10 @@ import time
 #print (sha)
 
 from Server import Servers
-
+# Imports
 
 
 sr = Servers()
 sr.set_up()
 sr.main()
 input()
-
-# Class for server operations
-#
-class Client():
-    def __init__(self):
-        self.login = 0
-        self.token = 0
-        self.status = 0
