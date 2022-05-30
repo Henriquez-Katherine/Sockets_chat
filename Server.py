@@ -304,7 +304,7 @@ class Servers():
                             print ("* Write address: ")
                             id = str(input())
                             print ("* Write port: ")
-                            port = str(input())
+                            port = int(input())
                         else:
                             id = "127.0.0.1"
                             port = 8001

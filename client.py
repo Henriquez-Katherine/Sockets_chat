@@ -15,14 +15,14 @@ while True:
                 print ("* Write address: ")
                 id = str(input())
                 print ("* Write port: ")
-                port = str(input())
+                port = int(input())
             else:
                 id = "127.0.0.1"
                 port = 8001
-                client.connect(
-                        (id, port) # bind hosting port and adress
-                        )
-                break
+            client.connect(
+                    (id, port) # bind hosting port and adress
+                    )
+            break
         except:
                 print ("[ERROR] SET UP ERROR. Invalid ip or port or other error.")
 
