@@ -43,6 +43,12 @@ class Servers():
 
                 self.letters = ["a", "b", "c", "d", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]
                 # For token generation
+
+        def hashing(self, x): # here we create hash
+            x = str(x).encode("utf-8")
+            sha = hashlib.sha1(x).hexdigest()
+            return sha
+
         def based(self):
             conn = sqlite3.connect('basa.bd')
             cursor = conn.cursor()
@@ -127,14 +133,14 @@ class Servers():
                         buf = cursor.fetchall()
                         if len(buf) == 0:
                             cursor.execute("""INSERT INTO users(name, password, rank, bal, status, token)
-                                VALUES('"""+ entry[1] + """', '"""+ entry[2] + """', 0, 0, 'ACTIVE', '0')
+                                VALUES('"""+ entry[1] + """', '"""+ self.hashing(entry[2]) + """', 0, 0, 'ACTIVE', '0')
                                 """)
                             conn.commit()
                         else:
                             user.send("* Error! The user already exists!".encode("utf-8"))
                     else:
                         if len(entry) >= 2:
-                            cursor.execute(f"SELECT * FROM users WHERE name = '{entry[0]}' and password = '{entry[1]}'")
+                            cursor.execute(f"SELECT * FROM users WHERE name = '{entry[0]}' and password = '{self.hashing(entry[1])}'")
                             buf = cursor.fetchall()
                             if len(buf) > 0:
                                 user.send("* Right answer! Acces greated!".encode("utf-8"))
