@@ -124,33 +124,44 @@ class Servers():
                 try:
                     user.send("* Write your login, then your password: (if haven't record print !create name password )".encode("utf-8"))
                     data = user.recv(2048)
-                    data = data.decode("utf-8") 
+                    data = data.decode("utf-8")
+                    buf0 = ""
+                    for i in data:
+                        if i == "'":
+                            buf0 = buf0 + "@"
+                        else:
+                            buf0 = buf0 + i
+                    data = buf0
                     entry = data.split()
                     if self.stopping == True:
                         return
-                    if entry[0] == "!create" and len(entry) >= 3:
-                        cursor.execute(f"SELECT * FROM users WHERE name = '{entry[1]}'")
-                        buf = cursor.fetchall()
-                        if len(buf) == 0:
-                            cursor.execute("""INSERT INTO users(name, password, rank, bal, status, token)
-                                VALUES('"""+ entry[1] + """', '"""+ self.hashing(entry[2]) + """', 0, 0, 'ACTIVE', '0')
-                                """)
-                            conn.commit()
-                        else:
-                            user.send("* Error! The user already exists!".encode("utf-8"))
-                    else:
-                        if len(entry) >= 2:
-                            cursor.execute(f"SELECT * FROM users WHERE name = '{entry[0]}' and password = '{self.hashing(entry[1])}'")
+                    try:    
+                        if entry[0] == "!create" and len(entry) >= 3:
+                            cursor.execute(f"SELECT * FROM users WHERE name = '{entry[1]}'")
                             buf = cursor.fetchall()
-                            if len(buf) > 0:
-                                user.send("* Right answer! Acces greated!".encode("utf-8"))
-                                print (f"[INFO] User connected as: {buf[0][0]}")
-                                login = buf[0][0]
-                                Run = False
-                                print (buf)
-                                self.users_data.append((login, buf[0][2], user, adr))
+                            if len(buf) == 0:
+                                cursor.execute("""INSERT INTO users(name, password, rank, bal, status, token)
+                                    VALUES('"""+ entry[1] + """', '"""+ self.hashing(entry[2]) + """', 0, 0, 'ACTIVE', '0')
+                                    """)
                             else:
-                                user.send("Uncorrect data! User or password uncorrect.".encode("utf-8"))
+                                user.send("* Error! The user already exists!".encode("utf-8"))
+                        else:
+                            if len(entry) >= 2:
+                                cursor.execute(f"SELECT * FROM users WHERE name = '{entry[0]}' and password = '{self.hashing(entry[1])}'")
+                                buf = cursor.fetchall()
+                                if len(buf) > 0:
+                                    user.send("* Right answer! Acces greated!".encode("utf-8"))
+                                    print (f"[INFO] User connected as: {buf[0][0]}")
+                                    login = buf[0][0]
+                                    Run = False
+                                    print (buf)
+                                    self.users_data.append((login, buf[0][2], user, adr))
+                                else:
+                                    user.send("Uncorrect data! User or password uncorrect.".encode("utf-8"))
+                    except sqlite3.DatabaseError as err:
+                        print (f"[ERROR] {err}")
+                    else:
+                        conn.commit()
                 except ConnectionResetError:
                         print ("[ERROR] USER disconnected Error!")
                         self.users.remove(user)
@@ -172,7 +183,14 @@ class Servers():
                 try:
                     user.send("* Input chat token or write - !create lobby: ".encode("utf-8"))
                     data = user.recv(2048)
-                    data = data.decode("utf-8") 
+                    data = data.decode("utf-8")
+                    buf0 = ""
+                    for i in data:
+                        if i == "'":
+                            buf0 = buf0 + "@"
+                        else:
+                            buf0 = buf0 + i
+                    data = buf0
                     entry = data.split()
                     if self.stopping == True:
                         return
@@ -186,7 +204,7 @@ class Servers():
                             user.send("| !help to get commands".encode("utf-8"))
                             cursor.execute("""
                                 UPDATE users SET rank = 1
-                                WHERE name = '""" + login + """'
+                                WHERE name = '""" + login + """' and rank = 0
                                 """)
                             cursor.execute("""
                                 UPDATE users SET token = '""" + token + """'
@@ -226,7 +244,14 @@ class Servers():
                                     break
                                 else:
                                     data = user.recv(2048)
-                                    data = data.decode("utf-8") 
+                                    data = data.decode("utf-8")
+                                    buf0 = ""
+                                    for i in data:
+                                        if i == "'":
+                                            buf0 = buf0 + "@"
+                                        else:
+                                            buf0 = buf0 + i
+                                    data = buf0
                                     ent = data.split()
                                     if self.stopping == True:
                                         return
@@ -265,7 +290,7 @@ class Servers():
                                                         """)
                                                     cursor.execute("""
                                                         UPDATE users SET rank = 0
-                                                        WHERE name = '""" + i1[0] + """'
+                                                        WHERE name = '""" + i1[0] + """' and rank = 1
                                                         """)
                                                     conn.commit()
                                                 break
@@ -288,7 +313,7 @@ class Servers():
                     self.users.remove(user)
                     cursor.execute("""
                         UPDATE users SET rank = 0
-                        WHERE name = '""" + login + """'
+                        WHERE name = '""" + login + """' and rank = 1
                         """)
                     cursor.execute("""
                         UPDATE users SET token = '0'
