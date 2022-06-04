@@ -5,6 +5,7 @@ import hashlib
 import time
 import random
 
+
 import sqlite3
 from sqlite3 import Error
 
@@ -44,34 +45,7 @@ class Servers():
                 self.letters = ["a", "b", "c", "d", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]
                 # For token generation
 
-        def hashing(self, x): # here we create hash
-            x = str(x).encode("utf-8")
-            sha = hashlib.sha1(x).hexdigest()
-            return sha
-
-        def based(self):
-            conn = sqlite3.connect('basa.bd')
-            cursor = conn.cursor()
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS users(
-                name TEXT,
-                password TEXT,
-                rank INTEGER,
-                bal INTEGER,
-                status TEXT,
-                token TEXT
-                );
-                """)
-            conn.commit()
-            cursor.execute("""
-                UPDATE users SET rank = 0
-                WHERE rank = 1
-                """)
-            cursor.execute("""
-                UPDATE users SET token = '0'
-                """)
-            conn.commit()
-
+        
         def main(self):
                 print ("[INFO] SERVER start listening.")
                 self.based()
@@ -140,9 +114,10 @@ class Servers():
                             cursor.execute(f"SELECT * FROM users WHERE name = '{entry[1]}'")
                             buf = cursor.fetchall()
                             if len(buf) == 0:
-                                cursor.execute("""INSERT INTO users(name, password, rank, bal, status, token)
-                                    VALUES('"""+ entry[1] + """', '"""+ self.hashing(entry[2]) + """', 0, 0, 'ACTIVE', '0')
+                                cursor.execute("""INSERT INTO users(name, password, rank, bal, status, token, reg_date)
+                                    VALUES('"""+ entry[1] + """', '"""+ self.hashing(entry[2]) + """', 0, 0, 'ACTIVE', '0', datetime(datetime())
                                     """)
+                                conn.commit()
                             else:
                                 user.send("* Error! The user already exists!".encode("utf-8"))
                         else:
@@ -150,18 +125,22 @@ class Servers():
                                 cursor.execute(f"SELECT * FROM users WHERE name = '{entry[0]}' and password = '{self.hashing(entry[1])}'")
                                 buf = cursor.fetchall()
                                 if len(buf) > 0:
-                                    user.send("* Right answer! Acces greated!".encode("utf-8"))
-                                    print (f"[INFO] User connected as: {buf[0][0]}")
-                                    login = buf[0][0]
-                                    Run = False
-                                    print (buf)
-                                    self.users_data.append((login, buf[0][2], user, adr))
+                                    if buf[0][4] == "BANNED" or buf[0][4] == "FROZEN":
+                                        user.send("| YOUR ACCOUNT HAS BEEN BANNED |".encode("utf-8"))
+                                        user.send("| DAYS OF THE END OF THE BAN: 99999 |".encode("utf-8"))
+                                        user.send("* Acces denied!".encode("utf-8"))
+                                        return
+                                    else:
+                                        user.send("* Acces greated!".encode("utf-8"))
+                                        print (f"[INFO] User connected as: {buf[0][0]}")
+                                        login = buf[0][0]
+                                        Run = False
+                                        print (buf)
+                                        self.users_data.append((login, buf[0][2], user, adr))
                                 else:
                                     user.send("Uncorrect data! User or password uncorrect.".encode("utf-8"))
                     except sqlite3.DatabaseError as err:
-                        print (f"[ERROR] {err}")
-                    else:
-                        conn.commit()
+                        print (f"[ERROR] {err}")      
                 except ConnectionResetError:
                         print ("[ERROR] USER disconnected Error!")
                         self.users.remove(user)
@@ -169,6 +148,11 @@ class Servers():
             Run = True
             Run1 = False
             n = 0
+            rank = 0
+            cursor.execute(f"SELECT * FROM users WHERE name = '{login}'")
+            buf = cursor.fetchall()
+            rank = buf[0][2]
+
 
             # Dont try to understand this shit
 
@@ -182,6 +166,8 @@ class Servers():
             while Run:
                 try:
                     user.send("* Input chat token or write - !create lobby: ".encode("utf-8"))
+                    if rank >= 3:
+                        user.send("* Use !help to get commands".encode("utf-8"))
                     data = user.recv(2048)
                     data = data.decode("utf-8")
                     buf0 = ""
@@ -192,8 +178,30 @@ class Servers():
                             buf0 = buf0 + i
                     data = buf0
                     entry = data.split()
+
                     if self.stopping == True:
                         return
+
+                    if len(entry) > 0:
+                        if entry[0] == "!help":
+                            user.send("* COMMNADS LIST: !help \n !ban \n !get_member \n !unban \n !ping \n []".encode("utf-8"))
+
+                    # Ban in days: !ban name days reason
+                    if len(entry) >= 4:
+                        if entry[0] == "!ban":
+                            cursor.execute(f"SELECT * FROM users WHERE name = '{entry[1]}'")
+                            buf = cursor.fetchall()
+                            if len(buf) > 0:
+                                cursor.execute("""UPDATE users 
+                                    SET status = 'BANNED'
+                                    WHERE name = '""" + entry[1] + """' """)
+                                cursor.execute(f"""INSERT INTO bans(name, reason, unban_date, ban_date)
+                                    VALUES('{entry[1]}', '{entry[3]}', datetime(datetime(), '+{entry[2]} seconds'), datetime())
+                                    """)
+                                conn.commit()
+                            else:
+                                user.send("* Error! The user not exists!".encode("utf-8"))
+
                     if len(entry) >= 2:
                         if entry[0] == "!create" and entry[1] == "lobby":
                             token = ""
@@ -212,6 +220,7 @@ class Servers():
                                 """)
                             conn.commit()
                             Run1 = True    
+
                     for i in self.chats:
                         if i[0] == entry[0]:
                                 user.send("* Joining to the chats...".encode("utf-8"))
@@ -225,12 +234,14 @@ class Servers():
                                     """)
                                 conn.commit()
                                 break
+
                     if Run1 == True:
                         for i in self.chats:
                             if i[0] == token:
                                 chat = n # chat Id
                                 break
                             n += 1
+
                         while Run1:  
                                 # This is chat
                                 n =  0
@@ -253,10 +264,13 @@ class Servers():
                                             buf0 = buf0 + i
                                     data = buf0
                                     ent = data.split()
+
                                     if self.stopping == True:
                                         return
+
                                     if ent[0] == "!help" and self.chats[chat][4] == user:
                                         user.send("* Chat commands ** help \n List with commands: \n !help \n !kick \n !members \n !name \n !close \n []".encode("utf-8"))
+
                                     if ent[0] == "!kick" and self.chats[chat][4] == user and len(ent) >= 2:
                                         for u in self.chats[chat][1]:
                                             if ent[1] == u[0]:
@@ -349,4 +363,60 @@ class Servers():
                         print ("[ERROR] SET UP ERROR. Invalid ip or port or other error.")
                 self.server.listen(self.max) #listen users  max
                 print ("[INFO] SERVER set up.")
+
+        def hashing(self, x): # here we create hash
+            x = str(x).encode("utf-8")
+            sha = hashlib.sha1(x).hexdigest()
+            return sha
+
+        def based(self):
+            conn = sqlite3.connect('basa.bd')
+            cursor = conn.cursor()
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS users(
+                name TEXT,
+                password TEXT,
+                rank INTEGER,
+                bal INTEGER,
+                status TEXT,
+                token TEXT,
+                reg_date DATE
+                );
+                """)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS bans(
+                name TEXT,
+                reason TEXT,
+                unban_date DATE,
+                ban_date DATE
+                );
+                """)
+            conn.commit()
+            #
+
+            cursor.execute("SELECT * FROM bans WHERE unban_date >= ban_date")
+            buf = cursor.fetchall()
+            for i in buf:
+                cursor.execute(f"SELECT * FROM users WHERE name = '{i[0]}'")
+                buf1 = cursor.fetchall()
+                if len(buf1) > 0:
+                    print (buf1)
+                    cursor.execute("""
+                                UPDATE users SET status = "ACTIVE"
+                                WHERE name = '""" + buf1[0][0] + """'
+                                """)
+                    cursor.execute("""
+                                DELETE FROM bans
+                                WHERE name = '""" + buf1[0][0] + """'
+                                """)
+            cursor.execute("""
+                UPDATE users SET rank = 0
+                WHERE rank = 1
+                """)
+            cursor.execute("""
+                UPDATE users SET token = '0'
+                """)
+
+            conn.commit()
+
 
