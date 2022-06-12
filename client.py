@@ -1,5 +1,13 @@
 import socket
+from tkinter import *
 from threading import Thread
+
+
+#window = Tk()
+#window.title("Client")
+#window.mainloop()
+
+
 
 client = socket.socket(               
     socket.AF_INET,
