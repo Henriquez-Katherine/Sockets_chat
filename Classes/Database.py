@@ -1,7 +1,9 @@
 import sqlite3
 from sqlite3 import Error
 
-from Hasher import Hasher
+from Classes.Hasher import Hasher
+
+
 
 class Database():
 
@@ -64,7 +66,7 @@ class Database():
             cls.inited = True
 
     @classmethod
-    def new_user(cls, login, password):
+    def _new_user(cls, login, password):
         conn = sqlite3.connect('basa.bd')
         cursor = conn.cursor()
         if cls.inited:
@@ -77,7 +79,7 @@ class Database():
             NOT_INITED()
 
     @classmethod
-    def del_user(cls, login):
+    def _del_user(cls, login):
         conn = sqlite3.connect('basa.bd')
         cursor = conn.cursor()
         if cls.inited:
@@ -91,7 +93,7 @@ class Database():
             NOT_INITED()
 
     @classmethod
-    def find_with_name(cls, login):
+    def _find_with_name(cls, login):
         conn = sqlite3.connect('basa.bd')
         cursor = conn.cursor()
         if cls.inited:
@@ -101,7 +103,7 @@ class Database():
             NOT_INITED()
 
     @classmethod
-    def ban_user(cls, login, reason, time):
+    def _ban_user(cls, login, reason, time):
         conn = sqlite3.connect('basa.bd')
         cursor = conn.cursor()
         if cls.inited:
@@ -117,7 +119,7 @@ class Database():
             NOT_INITED()
 
     @classmethod
-    def set_token(cls, login, token):
+    def _set_token(cls, login, token):
         conn = sqlite3.connect('basa.bd')
         cursor = conn.cursor()
         if cls.inited:
@@ -131,7 +133,7 @@ class Database():
             NOT_INITED()
 
     @classmethod
-    def clear_token(cls, login):
+    def _clear_token(cls, login):
         conn = sqlite3.connect('basa.bd')
         cursor = conn.cursor()
         if cls.inited:
@@ -145,7 +147,7 @@ class Database():
             NOT_INITED()
     
     @classmethod
-    def find_with_token(cls, token):
+    def _find_with_token(cls, token):
         conn = sqlite3.connect('basa.bd')
         cursor = conn.cursor()
         if cls.inited:
@@ -155,7 +157,7 @@ class Database():
             NOT_INITED()
 
     @classmethod
-    def check_name_password(cls, login, password):
+    def _check_name_password(cls, login, password):
         conn = sqlite3.connect('basa.bd')
         cursor = conn.cursor()
         if cls.inited:

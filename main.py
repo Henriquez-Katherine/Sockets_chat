@@ -3,7 +3,7 @@ import socket
 import threading
 import time
 
-from Server import Server
+from Classes.Server import Server
 # Imports
 
 

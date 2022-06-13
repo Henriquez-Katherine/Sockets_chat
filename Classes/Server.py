@@ -1,16 +1,15 @@
-
 import socket
 import threading
 import time
 import random
 
-from Database import Database
-from Logger import Logger
-from SocketX import SocketX
-from Chat import Chat
-from Hasher import Hasher
-from User import User
-from Message import Message
+from Classes.Database import Database
+from Classes.Logger import Logger
+from Classes.SocketX import SocketX
+from Classes.Chat import Chat
+from Classes.Hasher import Hasher
+from Classes.User import User
+from Classes.Message import Message
 
 # Ranks
 # user = 0
@@ -121,9 +120,10 @@ class Server(SocketX, Cmd):
                         return
             # Create user
             buf = self.bd(5, entry[0])[0]
-            self.users.append(User(buf[0], buf[2], buf[4]))
-            num = len(self.users) - 1
+            self.users.append(User(buf[0], buf[2], buf[4], user))
+            user_id = len(self.users) - 1
             
+            # Non-chat loop
             Run = False
             while True:
                 ##
@@ -138,15 +138,64 @@ class Server(SocketX, Cmd):
                             buf0 = buf0 + i
                 data = buf0
                 entry = data.split()
+
+                chat_id = 0
+                token = ""
+
                 if entry[0] == "!create" and entry[1] == "chat":
-                        token = ""
+                        
                         for i in range(self.token_len):
                             token = token + random.choice(self.letters)
-                        self.chats.append(Chat(token, self.users[num].get_name()))
-                        self.users[num].token = token
+                        self.chats.append(Chat(token, self.users[user_id].get_name()))
+                        self.users[user_id].token = token
+                        chat_id = len(self.chats) - 1
                         user.send(f"Chat created. token: {token}".encode("utf-8"))
                         user.send("| !help to get commands".encode("utf-8"))
-                        Run = True    
+                        Run = True
+                if entry[0] == "!connect":
+                        n = 0
+                        for chat in self.chats:
+                            if chat.token == entry[1]:
+                                chat.member_join(self.users[user_id].name)
+                                self.users[user_id].token = entry[1]
+                                chat_id = n
+                                user.send(f"| Connected to {chat.name}! |".encode("utf-8"))
+                                Run = True
+                                break
+                            n += 1
+
+                # Chat loop
+                while Run:
+                    data = user.recv(2048)
+                    data = data.decode("utf-8")
+                    entry = data.split()
+                    if self.users[user_id].get_name() not in self.chats[chat_id].members:
+                        Run = False
+                    else:
+                        mg = self.chats[chat_id].new_message(data, self.users[user_id].get_name())
+                        if entry[0] == "!help" and mg.get_author() == self.chats[chat_id].get_owner():
+                            user.send("* Chat commands ** help \n List with commands: \n !help \n !kick \n !members \n !change_name \n !close \n []".encode("utf-8"))
+                        elif entry[0] == "!kick" and mg.get_author() == self.chats[chat_id].get_owner() and len(entry) >= 2:
+                            for u in self.users:
+                                if u.name == entry[1]:
+                                    self.chats[chat_id].kick_member(entry[1], u)
+                                    user.send("* Member was kicked".encode("utf-8"))
+                        elif entry[0] == "!members" and mg.get_author() == self.chats[chat_id].get_owner():
+                            user.send("* Members: ".encode("utf-8"))
+                            for member in self.chats[chat_id].members:
+                                    user.send(f"{member} \n".encode("utf-8"))
+                        elif entry[0] == "!change_name" and mg.get_author() == self.chats[chat_id].get_owner() and len(entry) >= 2:
+                            self.chats[chat_id].name = entry[1]
+                            user.send("* Name was changed".encode("utf-8"))
+                        else:
+                            # Send new message
+                            print (self.chats[chat_id].messages)
+                            for u in self.users:
+                                if u.token == self.users[user_id].token:
+                                    print (u.name)
+                                    u.socket.send(f"{mg.author} : {mg.content}".encode("utf-8"))
+
+                        
 
 
 
@@ -159,21 +208,21 @@ class Server(SocketX, Cmd):
                 if request[0] == 2:
                     Database.init()
                 if request[0] == 3:
-                    answer = Database.new_user(request[1], request[2])
+                    answer = Database._new_user(request[1], request[2])
                 if request[0] == 4:
-                    answer = Database.del_user(request[1])
+                    answer = Database._del_user(request[1])
                 if request[0] == 5:
-                    answer = Database.find_with_name(request[1])
+                    answer = Database._find_with_name(request[1])
                 if request[0] == 6:
-                    answer = Database.ban_user(request[1], request[2], request[3])
+                    answer = Database._ban_user(request[1], request[2], request[3])
                 if request[0] == 7:
-                    answer = Database.set_token(request[1], request[2])
+                    answer = Database._set_token(request[1], request[2])
                 if request[0] == 8:
-                    answer = Database.clear_token(request[1])
+                    answer = Database._clear_token(request[1])
                 if request[0] == 9:
-                    answer = Database.find_with_token(request[1])
+                    answer = Database._find_with_token(request[1])
                 if request[0] == 10:
-                    answer = Database.check_name_password(request[1], request[2])
+                    answer = Database._check_name_password(request[1], request[2])
                 return answer
 
     def console(self):

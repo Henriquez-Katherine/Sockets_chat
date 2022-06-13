@@ -1,4 +1,3 @@
-
 class Message():
 
     def __init__(self, author, time, content):
