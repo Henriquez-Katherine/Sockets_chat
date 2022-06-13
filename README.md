@@ -2,7 +2,9 @@
 Socket chat, at the moment it is still under development.
 
 # How to use
-After installation, turn on main.py , then client.py . Enter !create by specifying your username and password, and then create a chat (!create chat). 
-Copy the received token and send it to another client. Another client needs to enter !connect token
+After installation, run the server: File main.py . Then set the IP address and port for the server. On the client side, enter the IP address and port. 
+Create an account using !create 'name' 'password'. 
+Create a chat or join using a !create chat\!connect 'token'.
 
+# Use
 Use
